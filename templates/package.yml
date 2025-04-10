@@ -1,0 +1,71 @@
+parameters:
+  - name: imageTag
+    type: string
+  - name: imageName
+    type: string
+
+steps:
+  - task: YarnInstaller@0
+    displayName: 'Install Yarn'
+    inputs:
+      versionSpec: '1.x'
+
+  - task: Yarn@3
+    displayName: 'Yarn Install'
+    inputs:
+      projectDirectory: '.'
+      arguments: '--verbose'
+
+  - task: Yarn@3
+    displayName: 'Yarn Install'
+    inputs:
+      projectDirectory: '.'
+      arguments: 'build'
+
+  - task: Docker@2
+    displayName: 'Build Docker Image'
+    inputs:
+      command: build
+      repository: $(imageName)
+      arguments: --no-cache
+      tags: |
+        $(imageTag)
+
+  - task: PowerShell@2
+    displayName: 'Package Docker Image'
+    inputs:
+      targetType: 'inline'
+      script: |
+        docker image save -o $(Build.ArtifactStagingDirectory)/image.tar $(imageName):$(imageTag)
+
+  - task: CopyFiles@2
+    displayName: Copy Files images
+    inputs:
+      SourceFolder: $(Build.SourcesDirectory)
+      Contents: image.tar
+      TargetFolder: $(Build.ArtifactStagingDirectory)
+      CleanTargetFolder: true
+      preserveTimestamp: true
+
+  - script: |
+      echo $(imageTag) > $(Build.ArtifactStagingDirectory)/tag.txt
+    displayName: 'Package Version'
+
+  - script: |
+      sed -i "s/latest/$(imageTag)/" "./deploy/definition.yaml"
+    displayName: Set version in Kubernetes definition
+
+  - task: CopyFiles@2
+    displayName: 'Copy kubernetes definition'
+    inputs:
+      SourceFolder: '$(Build.SourcesDirectory)/deploy'
+      Contents: definition.yaml
+      TargetFolder: '$(Build.ArtifactStagingDirectory)'
+      CleanTargetFolder: false
+      preserveTimestamp: true
+
+  - task: PublishPipelineArtifact@1
+    displayName: Publish Image to Artifacts
+    inputs:
+      targetPath: '$(Build.ArtifactStagingDirectory)'
+      artifactName: 'image-$(imageName)'

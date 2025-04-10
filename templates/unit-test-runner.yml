@@ -1,0 +1,17 @@
+steps:
+  - task: YarnInstaller@0
+    displayName: 'Install Yarn'
+    inputs:
+      versionSpec: '1.x'
+
+  - task: Yarn@3
+    displayName: 'Yarn Install'
+    inputs:
+      projectDirectory: '.'
+      arguments: '--verbose'
+
+  - task: Yarn@3
+    displayName: 'Run Test with Coverage'
+    inputs:
+      projectDirectory: '.'
+      arguments: 'test:cov'

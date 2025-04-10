@@ -1,0 +1,35 @@
+parameters:
+  - name: imageName
+    type: string
+  - name: imageTag
+    type: string
+
+stages:
+  - stage: init
+    displayName: 'Initial Stage'
+    jobs:
+      - job:
+        steps:
+          - script: |
+              echo "Initializing"
+
+  - stage: package
+    displayName: 'Package Code and Docker Image'
+    dependsOn: validateCode
+    condition: eq(dependencies.validateCode.outputs['validateCodeJob.validation.codeChanged'], 'true')
+    jobs:
+      - job:
+        steps:
+          - template: templates/package.yml
+            parameters:
+              imageTag: $(imageTag)
+              imageName: $(imageName)
+
+  - stage: test
+    displayName: Testing
+    dependsOn: validateCode
+    condition: eq(dependencies.validateCode.outputs['validateCodeJob.validation.codeChanged'], 'true')
+    jobs:
+      - job:
+        steps:
+          - template: templates/unit-test-runner.yml

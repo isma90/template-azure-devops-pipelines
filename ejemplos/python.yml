@@ -1,0 +1,25 @@
+trigger:
+  - main
+
+variables:
+  - name: imageName
+    value: 'mi-proyecto-api'
+  - name: imageTag
+    value: 'v$(Build.BuildNumber)'
+
+pool:
+  vmImage: ubuntu-latest
+
+resources:
+  repositories:
+    - repository: pipelines
+      type: github
+      name: 'isma90/template-azure-devops-pipelines'
+      endpoint: ''
+      ref: main
+
+stages:
+  - template: python.yml@pipelines
+    parameters:
+      imageName: $(imageName)
+      imageTag: $(imageTag)
